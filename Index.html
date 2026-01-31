@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ricky's Productivity</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f8fb;
+        --card: #ffffff;
+        --text: #1c1c1c;
+        --muted: #5b5b5b;
+        --accent: #2f80ed;
+        --accent-2: #27ae60;
+        --border: #e2e6ef;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 24px;
+      }
+
+      header {
+        margin-bottom: 24px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 20px;
+      }
+
+      .card {
+        background: var(--card);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid var(--border);
+        box-shadow: 0 8px 20px rgba(44, 62, 80, 0.06);
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-top: 12px;
+        margin-bottom: 6px;
+      }
+
+      select,
+      input[type="number"],
+      input[type="time"],
+      input[type="text"] {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        font-size: 14px;
+      }
+
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .row > * {
+        flex: 1;
+      }
+
+      button {
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.1s ease, box-shadow 0.1s ease;
+      }
+
+      button.secondary {
+        background: #eef2ff;
+        color: var(--accent);
+      }
+
+      button.success {
+        background: var(--accent-2);
+      }
+
+      button:active {
+        transform: translateY(1px);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .task {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .task-title {
+        font-weight: 600;
+        flex: 1;
+      }
+
+      input[type="range"] {
+        width: 100%;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .timeline {
+        margin-top: 12px;
+        border-top: 1px dashed var(--border);
+        padding-top: 12px;
+      }
+
+      .timeline-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+        padding: 6px 0;
+      }
+
+      .status-pill {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: #f0f5ff;
+        color: var(--accent);
+      }
+
+      .timer {
+        font-size: 32px;
+        font-weight: 700;
+        margin: 12px 0;
+      }
+
+      .notice {
+        padding: 10px 12px;
+        background: #fef7e6;
+        border-radius: 10px;
+        font-size: 13px;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Ricky's Productivity Planner</h1>
+      <p>Block time, assign tasks, and stay focused with an adaptive schedule.</p>
+    </header>
+
+    <div class="layout">
+      <section class="card">
+        <h2>Plan your block</h2>
+        <label for="timeMode">Total focus time</label>
+        <select id="timeMode">
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="45">45 minutes</option>
+          <option value="60">1 hour</option>
+          <option value="nextHour">Until the next top of the hour</option>
+          <option value="followingHour">Until the top of the following hour</option>
+          <option value="custom">Finish by a specific time</option>
+        </select>
+
+        <div id="customTimeWrapper" class="row" style="margin-top: 12px; display: none;">
+          <div>
+            <label for="customTime">Finish by</label>
+            <input type="time" id="customTime" />
+          </div>
+          <div>
+            <label for="customDate">Date</label>
+            <input type="date" id="customDate" />
+          </div>
+        </div>
+
+        <label for="taskCount">How many tasks?</label>
+        <input type="number" id="taskCount" min="1" max="10" value="3" />
+
+        <label>Suggested focus themes</label>
+        <div class="row">
+          <button type="button" class="secondary" data-suggest="Deep Work">Deep Work</button>
+          <button type="button" class="secondary" data-suggest="Admin">Admin</button>
+          <button type="button" class="secondary" data-suggest="Learning">Learning</button>
+        </div>
+
+        <div class="notice" id="timeSummary">Select a block to see the total minutes.</div>
+        <button type="button" id="buildPlan" style="margin-top: 16px;">Build plan</button>
+      </section>
+
+      <section class="card">
+        <h2>Tasks & time distribution</h2>
+        <div id="tasksContainer"></div>
+        <div class="muted" id="allocationSummary">No tasks yet.</div>
+      </section>
+
+      <section class="card">
+        <h2>Focus session</h2>
+        <div class="status-pill" id="sessionStatus">Not started</div>
+        <div class="timer" id="timerDisplay">00:00</div>
+        <div class="muted" id="currentTaskLabel">Create a plan to begin.</div>
+        <div class="row" style="margin-top: 12px;">
+          <button type="button" class="success" id="startSession">Start session</button>
+          <button type="button" class="secondary" id="finishEarly" disabled>Finish task early</button>
+        </div>
+        <div class="timeline" id="timeline"></div>
+      </section>
+    </div>
+
+    <script>
+      const timeMode = document.getElementById('timeMode');
+      const customTimeWrapper = document.getElementById('customTimeWrapper');
+      const customTime = document.getElementById('customTime');
+      const customDate = document.getElementById('customDate');
+      const taskCountInput = document.getElementById('taskCount');
+      const buildPlanButton = document.getElementById('buildPlan');
+      const tasksContainer = document.getElementById('tasksContainer');
+      const allocationSummary = document.getElementById('allocationSummary');
+      const timeSummary = document.getElementById('timeSummary');
+      const startSessionButton = document.getElementById('startSession');
+      const finishEarlyButton = document.getElementById('finishEarly');
+      const timerDisplay = document.getElementById('timerDisplay');
+      const currentTaskLabel = document.getElementById('currentTaskLabel');
+      const sessionStatus = document.getElementById('sessionStatus');
+      const timeline = document.getElementById('timeline');
+      const suggestButtons = document.querySelectorAll('[data-suggest]');
+
+      let tasks = [];
+      let totalMinutes = 0;
+      let currentTaskIndex = 0;
+      let timerInterval = null;
+      let remainingSeconds = 0;
+      let schedule = [];
+
+      const defaultPlaceholders = [
+        'Write project update',
+        'Clear inbox',
+        'Draft meeting notes',
+        'Outline next steps',
+        'Review roadmap'
+      ];
+
+      function updateCustomVisibility() {
+        const isCustom = timeMode.value === 'custom';
+        customTimeWrapper.style.display = isCustom ? 'flex' : 'none';
+      }
+
+      function calculateTotalMinutes() {
+        const now = new Date();
+        let minutes = 0;
+
+        if (['15', '30', '45', '60'].includes(timeMode.value)) {
+          minutes = Number(timeMode.value);
+        } else if (timeMode.value === 'nextHour') {
+          const nextHour = new Date(now);
+          nextHour.setMinutes(60, 0, 0);
+          minutes = Math.max(15, Math.round((nextHour - now) / 60000));
+        } else if (timeMode.value === 'followingHour') {
+          const followingHour = new Date(now);
+          followingHour.setMinutes(60, 0, 0);
+          followingHour.setHours(followingHour.getHours() + 1);
+          minutes = Math.max(30, Math.round((followingHour - now) / 60000));
+        } else if (timeMode.value === 'custom') {
+          if (!customTime.value) {
+            minutes = 0;
+          } else {
+            const [hours, mins] = customTime.value.split(':').map(Number);
+            const targetDate = customDate.value ? new Date(customDate.value) : new Date();
+            targetDate.setHours(hours, mins, 0, 0);
+            if (targetDate < now) {
+              targetDate.setDate(targetDate.getDate() + 1);
+            }
+            minutes = Math.max(10, Math.round((targetDate - now) / 60000));
+          }
+        }
+
+        totalMinutes = minutes;
+        timeSummary.textContent = minutes
+          ? `Total focus time: ${minutes} minutes.`
+          : 'Select a block to see the total minutes.';
+        return minutes;
+      }
+
+      function buildTasks() {
+        const count = Math.min(Math.max(Number(taskCountInput.value || 1), 1), 10);
+        const minutes = calculateTotalMinutes();
+        if (!minutes) {
+          alert('Pick a time block first.');
+          return;
+        }
+
+        tasks = Array.from({ length: count }, (_, index) => ({
+          id: index + 1,
+          name: defaultPlaceholders[index] || `Task ${index + 1}`,
+          minutes: Math.floor(minutes / count)
+        }));
+
+        const remainder = minutes - tasks.reduce((sum, task) => sum + task.minutes, 0);
+        for (let i = 0; i < remainder; i += 1) {
+          tasks[i % tasks.length].minutes += 1;
+        }
+
+        renderTasks();
+        renderAllocationSummary();
+        buildSchedule();
+      }
+
+      function renderTasks() {
+        tasksContainer.innerHTML = '';
+        tasks.forEach((task, index) => {
+          const card = document.createElement('div');
+          card.className = 'task';
+
+          const header = document.createElement('div');
+          header.className = 'task-header';
+
+          const titleInput = document.createElement('input');
+          titleInput.type = 'text';
+          titleInput.value = task.name;
+          titleInput.placeholder = `Task ${index + 1}`;
+          titleInput.className = 'task-title';
+          titleInput.addEventListener('input', (event) => {
+            task.name = event.target.value;
+            buildSchedule();
+          });
+
+          const minutesLabel = document.createElement('span');
+          minutesLabel.className = 'muted';
+          minutesLabel.textContent = `${task.minutes} min`;
+
+          header.appendChild(titleInput);
+          header.appendChild(minutesLabel);
+
+          const slider = document.createElement('input');
+          slider.type = 'range';
+          slider.min = 1;
+          slider.max = totalMinutes;
+          slider.value = task.minutes;
+          slider.addEventListener('input', (event) => {
+            adjustMinutes(index, Number(event.target.value));
+          });
+
+          card.appendChild(header);
+          card.appendChild(slider);
+          tasksContainer.appendChild(card);
+        });
+      }
+
+      function renderAllocationSummary() {
+        const allocated = tasks.reduce((sum, task) => sum + task.minutes, 0);
+        allocationSummary.textContent = `Allocated ${allocated} of ${totalMinutes} minutes across ${tasks.length} tasks.`;
+      }
+
+      function adjustMinutes(taskIndex, newMinutes) {
+        const delta = newMinutes - tasks[taskIndex].minutes;
+        if (delta === 0) {
+          return;
+        }
+
+        const adjustableTasks = tasks.filter((_, index) => index !== taskIndex);
+        if (!adjustableTasks.length) {
+          return;
+        }
+
+        let remainingDelta = delta;
+        tasks[taskIndex].minutes = newMinutes;
+
+        while (remainingDelta !== 0) {
+          const direction = remainingDelta > 0 ? 1 : -1;
+          const candidates = adjustableTasks.filter((task) => task.minutes - direction >= 1);
+          if (!candidates.length) {
+            break;
+          }
+          candidates.forEach((task) => {
+            if (remainingDelta === 0) {
+              return;
+            }
+            task.minutes -= direction;
+            remainingDelta -= direction;
+          });
+        }
+
+        if (remainingDelta !== 0) {
+          tasks[taskIndex].minutes -= remainingDelta;
+        }
+
+        renderTasks();
+        renderAllocationSummary();
+        buildSchedule();
+      }
+
+      function buildSchedule() {
+        const start = new Date();
+        let cursor = new Date(start);
+        schedule = tasks.map((task) => {
+          const startTime = new Date(cursor);
+          cursor = new Date(cursor.getTime() + task.minutes * 60000);
+          return {
+            ...task,
+            startTime,
+            endTime: cursor
+          };
+        });
+
+        timeline.innerHTML = '';
+        schedule.forEach((task) => {
+          const item = document.createElement('div');
+          item.className = 'timeline-item';
+          const startLabel = task.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const endLabel = task.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          item.innerHTML = `<span>${task.name || 'Untitled task'}</span><span>${startLabel} - ${endLabel}</span>`;
+          timeline.appendChild(item);
+        });
+      }
+
+      function startSession() {
+        if (!tasks.length) {
+          buildPlan();
+          if (!tasks.length) {
+            return;
+          }
+        }
+
+        currentTaskIndex = 0;
+        sessionStatus.textContent = 'In focus';
+        sessionStatus.style.background = '#eaf7ff';
+        finishEarlyButton.disabled = false;
+        beginTask();
+      }
+
+      function beginTask() {
+        clearInterval(timerInterval);
+        const task = schedule[currentTaskIndex];
+        if (!task) {
+          endSession();
+          return;
+        }
+        currentTaskLabel.textContent = `Current: ${task.name || 'Untitled task'}`;
+        remainingSeconds = task.minutes * 60;
+        updateTimerDisplay();
+
+        timerInterval = setInterval(() => {
+          remainingSeconds -= 1;
+          updateTimerDisplay();
+          if (remainingSeconds <= 0) {
+            playChime();
+            saveTaskCompletion(task);
+            currentTaskIndex += 1;
+            beginTask();
+          }
+        }, 1000);
+      }
+
+      function finishTaskEarly() {
+        const task = schedule[currentTaskIndex];
+        if (!task) {
+          return;
+        }
+        playChime();
+        saveTaskCompletion(task, true);
+        currentTaskIndex += 1;
+        beginTask();
+      }
+
+      function endSession() {
+        clearInterval(timerInterval);
+        sessionStatus.textContent = 'Complete';
+        sessionStatus.style.background = '#eafff1';
+        currentTaskLabel.textContent = 'Session complete. Great work!';
+        timerDisplay.textContent = '00:00';
+        finishEarlyButton.disabled = true;
+      }
+
+      function updateTimerDisplay() {
+        const minutes = Math.max(0, Math.floor(remainingSeconds / 60));
+        const seconds = Math.max(0, remainingSeconds % 60);
+        timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      }
+
+      function playChime() {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          const context = new AudioContext();
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          oscillator.connect(gain);
+          gain.connect(context.destination);
+          oscillator.type = 'sine';
+          oscillator.frequency.value = 880;
+          gain.gain.value = 0.2;
+          oscillator.start();
+          setTimeout(() => {
+            oscillator.stop();
+            context.close();
+          }, 600);
+        } catch (error) {
+          console.warn('Audio not supported', error);
+        }
+      }
+
+      function saveTaskCompletion(task, finishedEarly = false) {
+        const completedAt = new Date();
+        const label = finishedEarly ? `${task.name} (finished early)` : task.name;
+        google.script.run
+          .withFailureHandler((error) => console.error('Save failed', error))
+          .saveTask(label, completedAt);
+      }
+
+      function buildPlan() {
+        calculateTotalMinutes();
+        buildTasks();
+      }
+
+      timeMode.addEventListener('change', () => {
+        updateCustomVisibility();
+        calculateTotalMinutes();
+      });
+
+      [customTime, customDate].forEach((input) =>
+        input.addEventListener('change', () => {
+          calculateTotalMinutes();
+        })
+      );
+
+      suggestButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const theme = button.dataset.suggest;
+          defaultPlaceholders[0] = `${theme} focus block`;
+          if (tasks.length) {
+            tasks[0].name = defaultPlaceholders[0];
+            renderTasks();
+            buildSchedule();
+          }
+        });
+      });
+
+      buildPlanButton.addEventListener('click', buildPlan);
+      startSessionButton.addEventListener('click', startSession);
+      finishEarlyButton.addEventListener('click', finishTaskEarly);
+
+      updateCustomVisibility();
+      calculateTotalMinutes();
+    </script>
+  </body>
+</html>
